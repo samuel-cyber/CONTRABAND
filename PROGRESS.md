@@ -105,3 +105,27 @@
 2. Tomorrow, open *yesterday's* post: you see "Checkpoint closed" with that day's results and a button to today's post.
 3. Mid-shift, turn on airplane mode and tap PASS: the red banner appears. Turn the network back on and tap Retry: you're on the correct bag, with no double stamp.
 4. New account: the first item pulses, X-ray pulses on bag 1, and the reveals explain the payouts. On a second shift (next day) these hints are gone.
+
+## Milestone 5: Feel (2026-11-24)
+
+**Built**
+- **Stamp**: tapping PASS/BUST drops a big PASSED/BUSTED rubber stamp onto the passport at a random ±8° tilt. A 60 ms screen shake (Web Animations API on `#root`) and an SVG ink splatter in the stamp colour go with it. The stamped bag stays on screen until the stamp has landed (320 ms) *and* the server has answered, so a slow response never flashes the wrong bag.
+- **Bag open**: the reveal slams its verdict stamp, and the 3 items spill out one after another (staggered 80 ms).
+- **Money**: profit, payouts and the report total count up or down (rAF, ease-out, 600 ms) with a green or red flash. While the stamp is landing the header keeps the pre-stamp profit and progress dots, so the result isn't spoiled.
+- **X-ray**: the phosphor beam sweeps the CRT strip, and the found item fades in with a glow.
+- **Conveyor**: each new traveller slides in from the right.
+- **Report**: the SHIFT CLEARED / DOCKED PAY stamp slams in with a shake.
+- **Press states** on every button (sink + shadow collapse).
+- **Sound** (`fx/audio.ts`, Web Audio only, no files): thunk (stamp/seal), hum (X-ray), cash register (good call), buzzer (bad call / docked pay), fanfare (shift cleared), click (item select, label wheel, next). The 🔊/🔇 toggle sits next to every screen's heading and is saved per viewer (localStorage, wrapped in try/catch).
+- **Reduced motion**: CSS collapses every animation to its end state, and JS skips the shake and count-up. Verified with a forced reduced-motion screenshot.
+- Animations never block input. Overlays are `pointer-events: none`, and the only thing gated is the stamp buttons, for 320 ms, so a double tap can't stamp twice.
+
+**UNCONFIRMED**
+- How loud the sounds are on real phone speakers (gains in `fx/audio.ts`, 0.04–0.5).
+- iOS needs a tap before audio can play. The first sound is always triggered by a tap, so it should be fine.
+
+**Test on your phone**
+1. Stamp a bag: you should see the stamp land at a tilt, feel the screen jolt and hear a thunk, then the items spill and you hear ka-ching or a buzzer.
+2. X-ray: a hum plays, the green beam sweeps, and the item glows in.
+3. Tap 🔊 to mute, close the post, reopen: it's still muted.
+4. Turn on Reduce Motion (iOS Settings → Accessibility → Motion, or Android "Remove animations"): everything still works, with no shaking or count-up.

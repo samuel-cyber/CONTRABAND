@@ -35,7 +35,7 @@ export const OldPost = ({
   }, [dayKey]);
 
   return (
-    <div className="desk flex h-full flex-col gap-3 overflow-y-auto px-4 pt-4 pb-4">
+    <div className="desk flex h-full flex-col gap-3 overflow-x-hidden overflow-y-auto px-4 pt-4 pb-4">
       <ScreenTitle
         kicker={`Checkpoint · ${prettyDate(dayKey)}`}
         title="Checkpoint closed"

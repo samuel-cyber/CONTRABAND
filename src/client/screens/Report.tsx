@@ -4,6 +4,10 @@ import { Leaderboard } from '../components/Leaderboard';
 import { formatMoney, stampEmoji } from '../../shared/share';
 import { BigButton } from '../components/Buttons';
 import { ScreenTitle } from '../components/Header';
+import { useEffect } from 'react';
+import { Money } from '../components/Money';
+import { sfx } from '../fx/audio';
+import { shake } from '../fx/motion';
 import { shareResult } from '../share';
 
 type Props = {
@@ -26,19 +30,27 @@ export const Report = ({
   onLeaderboards,
 }: Props) => {
   const cleared = report.outcome === 'SHIFT_CLEARED';
+  useEffect(() => {
+    const id = setTimeout(() => {
+      shake(8);
+      if (cleared) sfx.fanfare();
+      else sfx.buzzer();
+    }, 300);
+    return () => clearTimeout(id);
+  }, [cleared]);
   return (
-    <div className="desk flex h-full flex-col gap-3 overflow-y-auto px-4 pt-4 pb-4">
+    <div className="desk flex h-full flex-col gap-3 overflow-x-hidden overflow-y-auto px-4 pt-4 pb-4">
       <ScreenTitle kicker="Shift report" title="End of shift" />
       <div className="paper flex flex-col items-center gap-2 rounded-xl border-2 border-manila-3 p-4 shadow-[0_6px_0_rgb(0_0_0/0.35)]">
         <div
-          className={`stamp-text -rotate-6 rounded-md border-[5px] px-4 py-1 text-3xl ${cleared ? 'border-clear text-clear' : 'border-crimson text-crimson'}`}
+          className={`slam stamp-text rounded-md border-[5px] px-4 py-1 text-3xl ${cleared ? 'border-clear text-clear' : 'border-crimson text-crimson'}`}
         >
           {cleared ? 'Shift cleared' : 'Docked pay'}
         </div>
         <div
           className={`font-mono text-4xl font-bold ${report.profit >= 0 ? 'text-clear-dark' : 'text-crimson'}`}
         >
-          {formatMoney(report.profit)}
+          <Money value={report.profit} initial={0} />
         </div>
         <div className="text-2xl tracking-widest" aria-label="Stamp results">
           {report.reveals.map((r) => stampEmoji(r)).join('')}

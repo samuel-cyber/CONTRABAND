@@ -7,6 +7,8 @@ import { BigButton } from '../components/Buttons';
 import { DirectiveBadge } from '../components/DirectiveBadge';
 import { ScreenTitle } from '../components/Header';
 import { ItemCard } from '../components/ItemCard';
+import { sfx } from '../fx/audio';
+import { shake } from '../fx/motion';
 
 type Props = {
   state: StateResponse;
@@ -24,7 +26,8 @@ export const PackDesk = ({ state, pending, firstShift, onSeal }: Props) => {
   const label = LABELS[labelIndex] ?? LABELS[0];
   const full = picked.length === BAG_SIZE;
 
-  const toggle = (id: string) =>
+  const toggle = (id: string) => {
+    sfx.click();
     setPicked((p) =>
       p.includes(id)
         ? p.filter((x) => x !== id)
@@ -32,12 +35,17 @@ export const PackDesk = ({ state, pending, firstShift, onSeal }: Props) => {
           ? [...p, id]
           : p
     );
-  const cycle = (dir: 1 | -1) =>
+  };
+
+  const cycle = (dir: 1 | -1) => {
+    sfx.click();
     setLabelIndex((i) => (i + dir + LABELS.length) % LABELS.length);
+  };
+
   const contraband = picked.filter((id) => getItem(id).contraband).length;
 
   return (
-    <div className="desk flex h-full flex-col gap-2.5 overflow-y-auto px-4 pt-3 pb-3">
+    <div className="desk flex h-full flex-col gap-2.5 overflow-x-hidden overflow-y-auto px-4 pt-3 pb-3">
       <ScreenTitle
         kicker="Phase 1 · Smuggler"
         title="Pack your bag"
@@ -124,7 +132,12 @@ export const PackDesk = ({ state, pending, firstShift, onSeal }: Props) => {
       <div className="mt-auto">
         <BigButton
           disabled={!full || pending || !label}
-          onClick={() => label && onSeal(picked, label.id)}
+          onClick={() => {
+            if (!label) return;
+            sfx.thunk();
+            shake();
+            onSeal(picked, label.id);
+          }}
         >
           {pending
             ? 'Sealing…'

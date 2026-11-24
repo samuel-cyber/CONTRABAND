@@ -28,7 +28,7 @@ export const Verdict = ({
   const good = inspected === 0 || verdict.cut >= 0;
 
   return (
-    <div className="desk flex h-full flex-col gap-3 overflow-y-auto px-4 pt-4 pb-4">
+    <div className="desk flex h-full flex-col gap-3 overflow-x-hidden overflow-y-auto px-4 pt-4 pb-4">
       <ScreenTitle kicker="Yesterday's verdict" title="Your bag's fate" />
       <div className="paper flex flex-col items-center gap-3 rounded-xl border-2 border-manila-3 p-4 text-center shadow-[0_6px_0_rgb(0_0_0/0.35)]">
         <div className="flex gap-2 text-4xl" aria-label="Your bag">

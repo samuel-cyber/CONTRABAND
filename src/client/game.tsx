@@ -94,7 +94,7 @@ export const App = () => {
         pending={game.pending}
         firstShift={firstShift}
         onXray={game.xray}
-        onStamp={(a) => void game.stamp(a)}
+        onStamp={game.stamp}
         onNext={game.next}
       />
     );

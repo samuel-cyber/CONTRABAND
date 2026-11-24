@@ -28,7 +28,7 @@ export const Suitcase = ({
               className="grid place-items-center rounded border border-phosphor/25 text-center"
             >
               {item ? (
-                <span className="flex flex-col items-center">
+                <span className="found flex flex-col items-center">
                   <span className="text-2xl leading-none drop-shadow-[0_0_6px_#4af626]">
                     {item.icon}
                   </span>
