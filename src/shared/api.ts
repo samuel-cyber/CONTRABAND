@@ -148,23 +148,12 @@ export type DayResultsResponse = {
   todayPostUrl: string | null;
 };
 
-// --- Template counter types: remove with the template demo code. ---
-
-export type InitResponse = {
-  type: 'init';
-  postId: string;
-  count: number;
-  username: string;
-};
-
-export type IncrementResponse = {
-  type: 'increment';
-  postId: string;
-  count: number;
-};
-
-export type DecrementResponse = {
-  type: 'decrement';
-  postId: string;
-  count: number;
+/** Minimal payload for the inline feed preview (kept cheap on purpose). */
+export type SplashResponse = {
+  type: 'splash';
+  dayKey: string;
+  directiveId: DirectiveId;
+  bustedToday: number;
+  playedToday: boolean;
+  todayPostUrl: string | null;
 };

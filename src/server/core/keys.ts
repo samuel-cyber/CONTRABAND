@@ -19,12 +19,14 @@ export const keys = {
   names: (d: string) => `day:${d}:names`,
   /** hash: busted, shifts, bags */
   dayStats: (d: string) => `day:${d}:stats`,
-  /** string: postId of the day's checkpoint post */
+  /** hash: claim (creation lock timestamp), postId of the day's post */
   dayPost: (d: string) => `day:${d}:post`,
   /** hash: streak, best, lastPlayedDay, shifts, flair */
   userStats: (userId: string) => `user:${userId}:stats`,
   /** hash: dayKey -> clean|dirty (pruned to the honesty window) */
   userHistory: (userId: string) => `user:${userId}:history`,
+  /** hash: per-install secrets (npcSalt). Permanent. */
+  config: () => 'config',
   /** string counter: checkpoint post number */
   checkpointCounter: () => 'checkpoint:count',
 } as const;

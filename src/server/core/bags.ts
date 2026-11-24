@@ -2,6 +2,7 @@ import { redis } from '@devvit/web/server';
 import type { Today } from './day';
 import { int } from './errors';
 import { keys } from './keys';
+import { npcScope } from './secret';
 import {
   resolveNpcBag,
   resolvePlayerBag,
@@ -54,7 +55,7 @@ export const resolveRef = async (
   today: Today
 ): Promise<ResolvedBag | null> => {
   if (ref.kind === 'npc') {
-    return resolveNpcBag(ref.npcId, today.setup, today.subredditId);
+    return resolveNpcBag(ref.npcId, today.setup, await npcScope(today));
   }
   const stored = await readBag(ref.day, ref.userId);
   return stored ? resolvePlayerBag(stored) : null;

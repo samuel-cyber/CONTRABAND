@@ -144,3 +144,23 @@ describe('npc bags', () => {
     expect(resolveNpcBag('nobody', setup, SUB)).toBeNull();
   });
 });
+
+describe('npc seed salt', () => {
+  it('changes NPC bags so they cannot be precomputed from public data', () => {
+    const ids = [
+      'aunty-bisi',
+      'dr-vex',
+      'captain-marlowe',
+      'lola',
+      'mr-kim',
+      'madame-rouge',
+      'professor-okoro',
+      'chef-antoine',
+    ];
+    const plain = ids.map((id) => resolveNpcBag(id, setup, SUB)?.itemIds);
+    const salted = ids.map(
+      (id) => resolveNpcBag(id, setup, `${SUB}:secret-salt`)?.itemIds
+    );
+    expect(salted).not.toEqual(plain);
+  });
+});

@@ -64,11 +64,12 @@ export const npcHonesty = (honesty: number): HonestyBadge => {
 export const resolveNpcBag = (
   npcId: string,
   day: DaySetup,
-  subredditId: string
+  /** subredditId + secret salt (see secret.ts) */
+  scope: string
 ): ResolvedBag | null => {
   const npc = findNpc(npcId);
   if (!npc) return null;
-  const bag = npcBag(npc, day, subredditId);
+  const bag = npcBag(npc, day, scope);
   return {
     ref: { kind: 'npc', npcId },
     itemIds: bag.itemIds,

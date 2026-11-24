@@ -325,3 +325,14 @@ Template files kept for now: `hooks/useCounter.ts`, `routes/forms.ts` and the ex
 - **Share grid:** 🟩 = correct PASS, 🟥 = correct BUST, ⬛ = wrong call. Busted callouts are real usernames only (NPCs are never called out), max 2 plus "+N".
 - **Honesty window:** "last 7 days" = today plus the 6 previous UTC days.
 - **25% cut rounding:** `Math.round` (650 → 163).
+
+## 14. As built (2026-11-24), differences from the §11 plan
+
+- **Sanitizing** lives in `src/server/core/shiftMachine.ts` (`toBagView` / `toShiftView`). There is no separate `sanitize.ts`. It's the only path from a secret bag to the client.
+- **Verdict reading** lives in `core/state.ts` (`readVerdict`). Packer crediting happens inside the stamp transaction in `core/shift.ts`.
+- Extra server modules: `core/pool.ts` (pure bag selection), `core/errors.ts`, `core/secret.ts` (per-install NPC salt), `routes/scheduler.ts`.
+- Extra endpoints: `GET /api/splash` (cheap inline-preview payload), `GET /api/day?d=` (read-only results for old posts).
+- Stamp and X-ray requests carry `step`; a mismatch returns `stale`.
+- Client: no `art/` folder. Placeholders are the catalog emoji; designer SVGs go in `src/client/assets/{items,npcs,stamps,ui}/` (`*.svg` imports are typed in `module.d.ts`). `fx/audio.ts` and `fx/motion.ts` are as planned. Extra files: `share.ts`, `postDay.ts`, `screens/{Leaderboards,OldPost,LoggedOut,verdictCopy}`, `components/{Money,StampFx,Countdown,Leaderboard,Avatar,Buttons,Header,DirectiveBadge}`.
+- Template demo code removed: counter hook, counter API types, example form (route, menu item, `forms` block), `public/snoo.png`.
+- Redis: `exec()` returning null (or throwing) is treated as a watch conflict, following the docs' `result !== null` pattern.

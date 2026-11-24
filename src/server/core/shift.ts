@@ -22,6 +22,7 @@ import { ApiError, int } from './errors';
 import { dayTtlSeconds, keys } from './keys';
 import { myEntry } from './leaderboard';
 import { pickNextRef } from './pool';
+import { npcScope } from './secret';
 import {
   readHistory,
   readStats,
@@ -78,9 +79,10 @@ const nextRefFor = async (
   today: Today,
   used: readonly BagRef[]
 ): Promise<BagRef | null> => {
-  const [todayUsers, yesterdayUsers] = await Promise.all([
+  const [todayUsers, yesterdayUsers, scope] = await Promise.all([
     readPool(today.day),
     readPool(today.yesterday),
+    npcScope(today),
   ]);
   return pickNextRef({
     me,
@@ -88,7 +90,7 @@ const nextRefFor = async (
     yesterday: today.yesterday,
     todayUsers,
     yesterdayUsers,
-    npcIds: npcOrderForDay(today.day, today.subredditId).map((n) => n.id),
+    npcIds: npcOrderForDay(today.day, scope).map((n) => n.id),
     used,
   });
 };
@@ -169,6 +171,7 @@ export const packBag = async (
   await tx.expire(keys.shift(day, ident.userId), ttl);
   if (first.kind === 'player') {
     await tx.zIncrBy(keys.pool(first.day), first.userId, 1);
+    await tx.expire(keys.pool(first.day), dayTtlSeconds(first.day));
   }
   await commit(tx);
   return state;
@@ -277,6 +280,7 @@ export const stampCurrent = async (
   await tx.expire(keys.names(day), ttl);
   if (next?.kind === 'player') {
     await tx.zIncrBy(keys.pool(next.day), next.userId, 1);
+    await tx.expire(keys.pool(next.day), dayTtlSeconds(next.day));
   }
   if (action === 'BUST' && !reveal.clean) {
     await tx.hIncrBy(keys.dayStats(day), 'busted', 1);
@@ -288,6 +292,7 @@ export const stampCurrent = async (
     const packerTtl = dayTtlSeconds(packer.day);
     await tx.hIncrBy(bagKey, action === 'PASS' ? 'passes' : 'busts', 1);
     await tx.hIncrBy(bagKey, 'cut', reveal.smugglerDelta);
+    await tx.expire(bagKey, packerTtl);
     if (busterSlot !== null) {
       await tx.hSet(bagKey, { [`buster${busterSlot}`]: ident.username });
     }

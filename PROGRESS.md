@@ -129,3 +129,75 @@
 2. X-ray: a hum plays, the green beam sweeps, and the item glows in.
 3. Tap 🔊 to mute, close the post, reopen: it's still muted.
 4. Turn on Reduce Motion (iOS Settings → Accessibility → Motion, or Android "Remove animations"): everything still works, with no shaking or count-up.
+
+## Milestone 6: Hardening (2026-11-24)
+
+**Cheat review** (what a modified client could try, and why it fails)
+| Attempt | Defence |
+|---|---|
+| Read a bag's contents before stamping | Server only sends `BagView` (passport, label, weight on Weight Check days, X-rayed items). Covered by a unit test that the JSON of a view never contains hidden item ids. |
+| **Precompute NPC bags from the public source + subreddit id** | **Fixed this milestone:** NPC bags and NPC order now mix in a random per-install secret (`config.npcSalt`, never sent to clients). Unit-tested. |
+| Choose which item the X-ray reveals | Server picks with `Math.random`, and only from not-yet-revealed items. |
+| Extra X-rays | `xraysLeft` lives in the server shift state. |
+| Stamp the same bag twice / skip a bag / replay a request | Every X-ray/stamp carries `step`; the server rejects mismatches (`stale`) inside a `watch/multi` transaction. |
+| Pack twice, pack items outside the hand, invent labels, free text | `validatePack` against the server-generated hand and the label catalogue; one bag key per user per day under `watch`. |
+| Inspect your own bag to farm the Smuggler's Cut | Pool excludes your userId on both days; no traveller appears twice in a shift; one shift per day. |
+| Forge scores or leaderboard entries | All scoring is computed server-side from stored contents; the client only sends `PASS`/`BUST`. |
+| Infer today's bag from the honesty badge | Badge is frozen at pack time from history *before* today. |
+| Remaining (accepted) | Collusion between friends (passing each other's contraband) costs the officer −$250 each time, so it's self-limiting. Alt accounts are a Reddit-level problem. |
+
+**Redis TTL audit**: every day-scoped key (`day:{d}:*`: bag, pool, shift, both leaderboards, names, stats, post) gets `expire` in the same transaction as each write. This milestone also adds an expire after `zIncrBy`/`hIncrBy` on another day's pool or bag, so a key that expires mid-request can't come back without a TTL. Permanent (tiny) keys: `user:{id}:stats`, `user:{id}:history` (pruned to 7 days on every pack), `config`, `checkpoint:count`.
+
+**Inline splash**: 1 KB of its own JS + the shared React/Devvit chunk (74 KB gzipped, reused by the game) + 6 KB CSS. Game screens and audio are only in `game.js`. It now calls a new `GET /api/splash` (3 cheap reads, no Reddit API calls) instead of the full state, so feed impressions stay cheap.
+
+**Cleanup**: removed the template counter hook and types, the example form (route, menu item, `forms` in `devvit.json`) and `public/snoo.png`.
+
+---
+
+## Phone test checklist (full run, ~15 minutes)
+
+Setup: `npm run dev` (playtest). In your playtest subreddit use the mod menu **"Create today's checkpoint post"**. Have a second account ready.
+
+**Inline preview (in the feed)**
+- [ ] The card shows date, the CONTRABLUFF stamp, today's directive and "N smugglers busted today", with nothing cut off at small widths.
+- [ ] The feed scrolls past the post normally (no scroll trap).
+- [ ] Logged out: the button says "Log in to clock in" and opens Reddit's login.
+- [ ] Logged in: **CLOCK IN** opens the full-screen game.
+
+**Pack (first time on this account)**
+- [ ] The first item pulses. Tapping items ticks them (click sound), and only 3 can be picked.
+- [ ] The suitcase hint changes for clean vs contraband. ‹ › cycles labels.
+- [ ] SEAL is disabled until 3 are picked. SEAL thunks and shakes and moves you to Bag 1/5.
+
+**Booth**
+- [ ] The traveller slides in. Passport shows a Snoovatar (or initial letter), NPC tag and title for NPCs, and an honesty pill.
+- [ ] Weight Check day: grams on the passport. Double Scan: "2 left". Tech Crackdown: ×2 tags on reveal cards.
+- [ ] X-RAY pulses on bag 1 with a tip line. It hums, the beam sweeps, and one item glows in. The counter drops.
+- [ ] PASS/BUST: a tilted stamp lands with shake + ink + thunk, then the bag opens and items spill. There's ka-ching or a buzzer, the money counts, and there's a one-line explanation (first shift only).
+- [ ] Double-tapping a stamp never stamps two bags.
+- [ ] PASS/BUST are reachable with one thumb. Nothing overflows the screen at your phone's width.
+
+**Report**
+- [ ] SHIFT CLEARED / DOCKED PAY slams in with fanfare or buzzer, and the total counts up. Grid, rank, streak and busted names are shown.
+- [ ] **Share result** opens the share sheet (or copies with a toast). Paste it into a comment.
+- [ ] Full leaderboards → both tabs → Back.
+- [ ] The countdown to the next checkpoint ticks.
+- [ ] Close and reopen the post: you go straight back to the report.
+
+**Multiplayer (second account)**
+- [ ] Account B packs a bag, then account A plays: one of A's bags shows u/B with B's avatar.
+- [ ] After A stamps B's bag, B's verdict the next day shows the right passed/busted counts, the cut, and A's name if A busted it.
+
+**Robustness**
+- [ ] Airplane mode mid-shift → stamp → red banner. Back online → Retry → same bag, no double stamp.
+- [ ] Mute 🔇 → reopen → still muted.
+- [ ] Reduce Motion on: no shake or count-up, and everything still works.
+
+**Next day (after 00:05 UTC)**
+- [ ] A new `Checkpoint #N` post appeared on its own (check `devvit logs` for `[daily-post] ran at …Z`).
+- [ ] Opening it shows the verdict card first, then CLOCK IN.
+- [ ] Opening *yesterday's* post shows "Checkpoint closed", that day's results, and a button to today's post.
+- [ ] After 3 days in a row: flair "3-Day Shift Streak" (if it fails, look for `Flair not set` in logs).
+
+**Before submitting**
+- [ ] Never run `devvit publish` (the script is removed). `npm run deploy` (upload) is fine.

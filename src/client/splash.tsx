@@ -8,7 +8,7 @@ import {
 } from '@devvit/web/client';
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import type { StateResponse } from '../shared/api';
+import type { SplashResponse } from '../shared/api';
 import { dayKey, dayKeyToDate } from '../shared/day';
 import { DirectiveBadge } from './components/DirectiveBadge';
 import { isOldPost, postDayKey } from './postDay';
@@ -29,19 +29,19 @@ const isLoggedIn = (): boolean => {
 };
 
 export const Splash = () => {
-  const [state, setState] = useState<StateResponse | null>(null);
+  const [state, setState] = useState<SplashResponse | null>(null);
 
   useEffect(() => {
-    fetch('/api/state')
+    fetch('/api/splash')
       .then((r) => (r.ok ? r.json() : null))
-      .then((s: StateResponse | null) => setState(s))
+      .then((s: SplashResponse | null) => setState(s))
       .catch(() => setState(null));
   }, []);
 
   const closed = state !== null && isOldPost(state.dayKey, state.todayPostUrl);
   const day = closed ? (postDayKey() ?? dayKey()) : (state?.dayKey ?? dayKey());
   const loggedIn = isLoggedIn();
-  const done = state?.phase === 'report';
+  const done = state?.playedToday ?? false;
 
   return (
     <div className="desk flex h-full flex-col items-center justify-center gap-3 overflow-hidden px-5 text-center">

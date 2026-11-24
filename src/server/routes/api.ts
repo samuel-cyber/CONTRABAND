@@ -1,24 +1,27 @@
 import { Hono, type Context } from 'hono';
 import type {
   DayResultsResponse,
+  SplashResponse,
   ErrorResponse,
   LeaderboardResponse,
   StampResponse,
   StateResponse,
   XrayResponse,
 } from '../../shared/api';
-import { LEADERBOARD_SIZE } from '../../shared/balance';
+import { context, redis } from '@devvit/web/server';
+import {
+  LEADERBOARD_PREVIEW_SIZE,
+  LEADERBOARD_SIZE,
+} from '../../shared/balance';
+import { isDayKey } from '../../shared/day';
 import { isStampAction } from '../../shared/scoring';
 import { getToday } from '../core/day';
-import { ApiError } from '../core/errors';
+import { ApiError, int } from '../core/errors';
+import { keys } from '../core/keys';
 import { myEntry, topEntries } from '../core/leaderboard';
 import { awardFlair, getIdentity, type Identity } from '../core/player';
 import { buildReport, packBag, stampCurrent, xrayCurrent } from '../core/shift';
 import { toShiftView } from '../core/shiftMachine';
-import { isDayKey } from '../../shared/day';
-import { LEADERBOARD_PREVIEW_SIZE } from '../../shared/balance';
-import { redis } from '@devvit/web/server';
-import { keys } from '../core/keys';
 import { buildState, readVerdict, todayPostUrl } from '../core/state';
 
 export const api = new Hono();
@@ -61,6 +64,29 @@ const fail = (c: Context, error: unknown) => {
     500
   );
 };
+
+// Inline feed preview: 2-3 cheap reads, no Reddit API calls.
+api.get('/splash', async (c) => {
+  try {
+    const today = getToday();
+    const userId = context.userId;
+    const [busted, lastPlayed, postUrl] = await Promise.all([
+      redis.hGet(keys.dayStats(today.day), 'busted'),
+      userId ? redis.hGet(keys.userStats(userId), 'lastPlayedDay') : undefined,
+      todayPostUrl(today.day),
+    ]);
+    return c.json<SplashResponse>({
+      type: 'splash',
+      dayKey: today.day,
+      directiveId: today.setup.directiveId,
+      bustedToday: int(busted),
+      playedToday: lastPlayed === today.day,
+      todayPostUrl: postUrl,
+    });
+  } catch (error) {
+    return fail(c, error);
+  }
+});
 
 api.get('/state', async (c) => {
   try {
