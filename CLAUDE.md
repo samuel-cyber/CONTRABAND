@@ -34,7 +34,8 @@ Tie-breakers favour UX, then polish. The judges explicitly penalise visible "AI 
 ### 4.1 Daily setup (deterministic)
 - Day key: `YYYYMMDD` in UTC. A new day starts at 00:00 UTC.
 - Seeded PRNG (e.g. mulberry32) on `dayKey + subredditId`.
-- Today's **hand**: 5 items from the catalog, always with **at least 2 contraband and at least 2 legal**.
+- Today's **hand**: 5 items from the catalog, always with **at least 2 contraband and at least 3 legal** (so a clean bag is always possible; `MIN_LEGAL_IN_HAND` in `balance.ts`).
+- **All game state is keyed by the current UTC dayKey, not by the post.** Any CONTRABLUFF post plays today's game; `postData.dayKey` is for display only.
 - Today's **Directive**: 1 of 3 (see 4.5).
 
 ### 4.2 Phase 1: PACK (smuggler)
@@ -61,12 +62,12 @@ Tie-breakers favour UX, then polish. The judges explicitly penalise visible "AI 
 **Smuggler's Cut** (separate leaderboard; credited to the *packer* every time someone inspects their bag):
 | Situation | Packer gets |
 |---|---|
-| Bag with contraband is PASSED | + total contraband value |
+| Bag with contraband is PASSED | + 25% of the bag's total contraband value |
 | Bag with contraband is BUSTED | −100 |
 | Clean bag is BUSTED (you baited them) | +200 |
 | Clean bag is PASSED | +25 |
 
-These make bluffing clean a real strategy. Keep all numbers in `src/shared/balance.ts` so tuning is one file.
+Directive values apply to both tables (Tech Crackdown doubles tech items for officers and smugglers). These make bluffing clean a real strategy. Keep all numbers in `src/shared/balance.ts` so tuning is one file.
 
 - Contraband values: 300–900. Legal values: 20–80 (flavour only).
 - End of shift: "SHIFT CLEARED" if officer profit > 0, otherwise "DOCKED PAY" (comedic, still recorded).
@@ -85,23 +86,23 @@ Stretch: **Internal Affairs** (bribe envelopes plus an undercover audit), and **
 When a player opens the game, if they packed a bag yesterday, show a card first: "Your bag was passed by 14, busted by 3. Smuggler's Cut: +$4,200. Busted by u/x, u/y." Then the CLOCK IN button.
 
 ### 4.8 NPCs (cold start)
-- 12 NPC travellers with distinct names and personalities (e.g. "Aunty Bisi, Frequent Flyer", "Dr. Vex, Suspiciously Calm"), each with an illustrated SVG portrait and an **NPC** tag.
+- 12 NPC travellers with distinct names and personalities (e.g. "Aunty Bisi, Frequent Flyer", "Dr. Vex, Suspiciously Calm"), each with an SVG portrait (`src/client/assets/npcs/npc-<id>.svg`) and an **NPC** tag.
 - **Never** fake a Reddit username or Snoovatar for an NPC.
 - NPC bags are generated deterministically from the day's hand and each NPC's personality (e.g. Aunty Bisi is honest 80% of the time).
 
 ## 5. Reddit integration
 - Use the player's avatar (Snoovatar) and username on passports.
-- **Streak:** consecutive UTC days with a completed shift. Only completing *today's* post counts.
+- **Streak:** consecutive UTC days with a completed shift. Only a shift completed on *today's* UTC dayKey counts.
 - **User flair** at milestones (e.g. "Iron Stamp", "Master Smuggler", "7-Day Shift Streak"), if the API allows it for the installing subreddit.
 - **Share card:** at the end of a shift, a one-tap "Copy result" producing a short emoji summary with callouts, for pasting into comments, e.g.
   `CONTRABLUFF 21/11 🛃 $1,750 | 🟥🟩🟥🟩🟩 | busted u/pixelwizard 📦`
-- **Daily post:** a scheduler job creates a new post every day at 13:00 UTC with today's Directive in the post data.
+- **Daily post:** a scheduler job (cron `5 0 * * *`) creates a new post every day at 00:05 UTC with today's dayKey and Directive in the post data.
 - **Live ticker** (stretch): realtime "u/x just busted u/y" feed on the inline preview.
 
 ## 6. Technical stack and architecture
 
 - **Devvit Web** (client + server + `devvit.json`). Start from the **official React template** on the Devvit quickstart (developers.reddit.com/docs/quickstart). Don't hand-roll the scaffold.
-- Client: React + TypeScript + Tailwind, Web Audio for SFX (synthesised, no audio files needed), SVG icons and illustrations.
+- Client: React + TypeScript + Tailwind, Web Audio for SFX (synthesised, no audio files needed), SVG art supplied by our designer in `src/client/assets/{items,npcs,stamps,ui}/` (`item-<id>.svg`, `npc-<id>.svg`); emoji/plain-shape placeholders until the files arrive.
 - Server: whatever the official template uses (Express or Hono). Redis for all state.
 - **No external HTTP, no AI calls at runtime.**
 
@@ -135,7 +136,7 @@ POST /api/xray          { }                      -> reveals 1 item of the curren
 POST /api/stamp         { action: PASS|BUST }    -> resolves, credits packer, returns reveal + next bag
 GET  /api/leaderboard   officer + smuggler top 10, my ranks
 ```
-Scheduler: daily post creation at 13:00 UTC.
+Scheduler: daily post creation at 00:05 UTC (`5 0 * * *`).
 
 ## 7. Screens (mobile-first; test at 360×640 inside the Reddit app)
 

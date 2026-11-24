@@ -68,6 +68,7 @@ export default defineConfig([
       '**/build/**',
       'eslint.config.js',
       '**/vite.config.ts',
+      '**/vitest.config.ts',
       'devvit.config.ts',
     ],
     languageOptions: {
