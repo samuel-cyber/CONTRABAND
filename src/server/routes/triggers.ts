@@ -1,19 +1,20 @@
 import { Hono } from 'hono';
 import type { OnAppInstallRequest, TriggerResponse } from '@devvit/web/shared';
 import { context } from '@devvit/web/server';
-import { createPost } from '../core/post';
+import { getToday } from '../core/day';
+import { ensureDailyPost } from '../core/post';
 
 export const triggers = new Hono();
 
 triggers.post('/on-app-install', async (c) => {
   try {
-    const post = await createPost();
     const input = await c.req.json<OnAppInstallRequest>();
+    const post = await ensureDailyPost(getToday());
 
     return c.json<TriggerResponse>(
       {
         status: 'success',
-        message: `Post created in subreddit ${context.subredditName} with id ${post.id} (trigger: ${input.type})`,
+        message: `Checkpoint post in r/${context.subredditName}: ${post?.postId ?? 'pending'} (trigger: ${input.type})`,
       },
       200
     );

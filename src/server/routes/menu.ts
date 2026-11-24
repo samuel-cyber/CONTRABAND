@@ -1,26 +1,36 @@
 import { Hono } from 'hono';
 import type { UiResponse } from '@devvit/web/shared';
 import { context } from '@devvit/web/server';
-import { createPost } from '../core/post';
+import { getToday } from '../core/day';
+import { ensureDailyPost } from '../core/post';
 
 export const menu = new Hono();
 
 menu.post('/post-create', async (c) => {
   try {
-    const post = await createPost();
-
+    const result = await ensureDailyPost(getToday());
+    if (!result) {
+      return c.json<UiResponse>(
+        {
+          showToast:
+            "Today's checkpoint is being created. Try again in a minute.",
+        },
+        200
+      );
+    }
     return c.json<UiResponse>(
       {
-        navigateTo: `https://reddit.com/r/${context.subredditName}/comments/${post.id}`,
+        showToast: result.created
+          ? "Today's checkpoint is open!"
+          : "Today's checkpoint already exists. Taking you there.",
+        navigateTo: `https://reddit.com/r/${context.subredditName}/comments/${result.postId}`,
       },
       200
     );
   } catch (error) {
-    console.error(`Error creating post: ${error}`);
+    console.error('Error creating checkpoint post', error);
     return c.json<UiResponse>(
-      {
-        showToast: 'Failed to create post',
-      },
+      { showToast: "Couldn't create the checkpoint post." },
       400
     );
   }

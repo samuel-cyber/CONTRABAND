@@ -45,3 +45,23 @@
 5. The report shows the grid. Share opens the share sheet or copies the text.
 6. Close and reopen the post: you go straight back to the report (one shift per day).
 7. Kill the network mid-shift and tap a stamp: a red banner appears. Retry resumes at the same bag.
+
+## Milestone 2: Daily post + multiplayer (2026-11-24)
+
+**Built**
+- `core/post.ts` `ensureDailyPost`: creates **one** post per UTC day, titled `Checkpoint #N: <Directive>`, with `postData {dayKey, directiveId, checkpoint}` and an old-Reddit text fallback. A per-day claim (`hSetNX`) makes it idempotent across the scheduler, the install trigger and the mod menu. A claim older than 2 minutes without a post is treated as crashed and taken over.
+- `devvit.json`: scheduler task `daily-post` → `/internal/scheduler/daily-post`, cron `5 0 * * *`. Validated against the local schema.
+- Mod menu item renamed **"Create today's checkpoint post"**. If today's post already exists it takes you there instead of making a duplicate.
+- `onAppInstall` creates today's post.
+- Multiplayer: since 1B, real players' bags enter other players' shifts (today's least-inspected first, then yesterday's, then NPCs).
+- Logged out: the splash says "Log in to clock in" and opens Reddit's login prompt. The game screen does the same.
+
+**UNCONFIRMED**
+- Cron timezone. The handler logs `[daily-post] ran at <ISO time>`, so check `devvit logs` after 00:05 UTC to confirm it ran in UTC.
+- That `reddit.submitCustomPost` works from a scheduler context (no user). It runs as the app account, which should be fine.
+
+**Test on your phone**
+1. As a mod, use the subreddit menu "Create today's checkpoint post". The post appears as `Checkpoint #1: <Directive>`. Use it again: you get a toast and land on the same post, with no duplicate.
+2. With a second account (or a friend): pack a bag. Then on your main account play a shift. One of your 5 bags should be the second account's bag (real username, not NPC-tagged).
+3. Log out and open the post: the splash shows "Log in to clock in", and tapping it opens the login prompt.
+4. Next morning (after 00:05 UTC) a new `Checkpoint #2` post should appear on its own.
