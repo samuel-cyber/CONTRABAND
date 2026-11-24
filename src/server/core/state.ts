@@ -31,13 +31,21 @@ export const readVerdict = async (
   };
 };
 
+export const todayPostUrl = async (day: string): Promise<string | null> => {
+  const postId = await redis.hGet(keys.dayPost(day), 'postId');
+  return postId
+    ? `https://www.reddit.com/r/${context.subredditName}/comments/${postId}`
+    : null;
+};
+
 export const buildState = async (
   ident: Identity | null,
   today: Today
 ): Promise<StateResponse> => {
-  const [dayStats, leaderboard] = await Promise.all([
+  const [dayStats, leaderboard, postUrl] = await Promise.all([
     redis.hGetAll(keys.dayStats(today.day)),
     topEntries('officer', today.day, LEADERBOARD_PREVIEW_SIZE),
+    todayPostUrl(today.day),
   ]);
   const base: StateResponse = {
     type: 'state',
@@ -51,6 +59,7 @@ export const buildState = async (
     verdict: null,
     shift: null,
     report: null,
+    todayPostUrl: postUrl,
     bustedToday: int(dayStats.busted),
     shiftsToday: int(dayStats.shifts),
     leaderboard,

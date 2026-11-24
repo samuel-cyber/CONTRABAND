@@ -1,5 +1,6 @@
 import type {
   ApiErrorCode,
+  DayResultsResponse,
   LeaderboardResponse,
   PackRequest,
   StampRequest,
@@ -21,10 +22,13 @@ export class ApiFailure extends Error {
 }
 
 const FRIENDLY: Partial<Record<FailureCode, string>> = {
-  network: 'Lost the radio signal. Check your connection.',
+  network: 'Lost the radio signal. Check your connection, then retry.',
   busy: 'The checkpoint is swamped. Try that again.',
   server: 'The X-ray machine jammed. Try again in a moment.',
   'logged-out': 'Log in to clock in.',
+  'bad-request': "That stamp didn't take. Try again.",
+  'no-xrays': 'Out of X-ray film for this shift.',
+  'nothing-left': 'Nothing left to scan in this bag.',
 };
 
 export const friendlyMessage = (error: unknown): string => {
@@ -72,4 +76,6 @@ export const api = {
   xray: (req: XrayRequest) => request<XrayResponse>('xray', req),
   stamp: (req: StampRequest) => request<StampResponse>('stamp', req),
   leaderboard: () => request<LeaderboardResponse>('leaderboard'),
+  day: (dayKey: string) =>
+    request<DayResultsResponse>(`day?d=${encodeURIComponent(dayKey)}`),
 };

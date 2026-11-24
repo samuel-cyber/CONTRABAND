@@ -1,4 +1,5 @@
 import type { LeaderboardEntry, ShiftReport, Verdict } from '../../shared/api';
+import { Countdown } from '../components/Countdown';
 import { Leaderboard } from '../components/Leaderboard';
 import { formatMoney, stampEmoji } from '../../shared/share';
 import { BigButton } from '../components/Buttons';
@@ -10,6 +11,8 @@ type Props = {
   leaderboard: LeaderboardEntry[];
   me: string | null;
   verdict: Verdict | null;
+  nextDayAt: number;
+  onNewDay: () => void;
   onLeaderboards: () => void;
 };
 
@@ -18,6 +21,8 @@ export const Report = ({
   leaderboard,
   me,
   verdict,
+  nextDayAt,
+  onNewDay,
   onLeaderboards,
 }: Props) => {
   const cleared = report.outcome === 'SHIFT_CLEARED';
@@ -80,9 +85,17 @@ export const Report = ({
           cut {formatMoney(verdict.cut)}.
         </p>
       )}
-      <p className="text-center font-mono text-xs text-manila/70">
-        Come back tomorrow for your bag's verdict.
-      </p>
+      <div className="rounded-xl border-2 border-dashed border-manila/25 p-3 text-center">
+        <div className="font-mono text-[11px] tracking-widest text-brass uppercase">
+          Next checkpoint opens in
+        </div>
+        <div className="text-2xl text-manila">
+          <Countdown to={nextDayAt} onDone={onNewDay} />
+        </div>
+        <p className="mt-1 font-mono text-xs text-manila/70">
+          Come back tomorrow for your bag's verdict.
+        </p>
+      </div>
     </div>
   );
 };

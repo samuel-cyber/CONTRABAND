@@ -1,5 +1,6 @@
 import { Hono, type Context } from 'hono';
 import type {
+  DayResultsResponse,
   ErrorResponse,
   LeaderboardResponse,
   StampResponse,
@@ -14,7 +15,11 @@ import { myEntry, topEntries } from '../core/leaderboard';
 import { awardFlair, getIdentity, type Identity } from '../core/player';
 import { buildReport, packBag, stampCurrent, xrayCurrent } from '../core/shift';
 import { toShiftView } from '../core/shiftMachine';
-import { buildState } from '../core/state';
+import { isDayKey } from '../../shared/day';
+import { LEADERBOARD_PREVIEW_SIZE } from '../../shared/balance';
+import { redis } from '@devvit/web/server';
+import { keys } from '../core/keys';
+import { buildState, readVerdict, todayPostUrl } from '../core/state';
 
 export const api = new Hono();
 
@@ -147,6 +152,36 @@ api.get('/leaderboard', async (c) => {
       smuggler,
       myOfficer,
       mySmuggler,
+    });
+  } catch (error) {
+    return fail(c, error);
+  }
+});
+
+// Read-only results for a past day (old checkpoint posts).
+api.get('/day', async (c) => {
+  try {
+    const day = c.req.query('d');
+    const today = getToday();
+    if (!isDayKey(day) || day > today.day) {
+      throw new ApiError('bad-request', 'Unknown checkpoint day.');
+    }
+    const ident = await getIdentity();
+    const [officer, smuggler, myProfit, myBag, postUrl] = await Promise.all([
+      topEntries('officer', day, LEADERBOARD_PREVIEW_SIZE),
+      topEntries('smuggler', day, LEADERBOARD_PREVIEW_SIZE),
+      ident ? redis.zScore(keys.lbOfficer(day), ident.userId) : undefined,
+      ident ? readVerdict(ident.userId, day) : null,
+      todayPostUrl(today.day),
+    ]);
+    return c.json<DayResultsResponse>({
+      type: 'day',
+      dayKey: day,
+      officer,
+      smuggler,
+      myProfit: myProfit ?? null,
+      myBag,
+      todayPostUrl: postUrl,
     });
   } catch (error) {
     return fail(c, error);

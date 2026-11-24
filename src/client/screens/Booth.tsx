@@ -25,7 +25,7 @@ type Props = {
 
 const ProgressDots = ({ shift }: { shift: ShiftView }) => (
   <div
-    className="flex gap-1.5"
+    className="flex shrink-0 gap-1.5"
     aria-label={`Bag ${Math.min(shift.step + 1, shift.total)} of ${shift.total}`}
   >
     {Array.from({ length: shift.total }, (_, i) => {
@@ -139,7 +139,9 @@ export const Booth = ({
         />
         <div className="flex items-center justify-between gap-2">
           <ProgressDots shift={shift} />
-          <DirectiveBadge id={state.directiveId} compact />
+          <div className="flex min-w-0 justify-end">
+            <DirectiveBadge id={state.directiveId} compact />
+          </div>
         </div>
       </div>
 
@@ -158,6 +160,11 @@ export const Booth = ({
               weightGrams={bag.weightGrams}
             />
             <Suitcase xrayedItemIds={bag.xrayedItemIds} scanning={scanning} />
+            {firstShift && shift.step === 0 && (
+              <p className="text-center font-mono text-xs text-phosphor/90">
+                X-ray peeks at one random item. Then stamp PASS or BUST.
+              </p>
+            )}
           </>
         ) : null}
       </div>

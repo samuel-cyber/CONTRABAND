@@ -86,3 +86,22 @@
 2. On a Double Scan day the booth shows "2 left". On Weight Check, passports show grams. On Tech Crackdown, tech cards show a red ×2 and the values are doubled.
 3. Report → "Full leaderboards" → switch tabs → Back.
 4. After 3 days in a row, check your user flair in the subreddit ("3-Day Shift Streak").
+
+## Milestone 4: Edge states (2026-11-24)
+
+**Built**
+- **Already played today**: reopening goes straight to the report, which now has a live "Next checkpoint opens in HH:MM:SS" countdown. At 00:00 UTC it refreshes into the new day.
+- **Old posts**: when a post's `postData.dayKey` is older than today *and* today's checkpoint post exists, the game shows a read-only "Checkpoint closed" screen: your shift profit and bag result for that day, top officers and smugglers that day, and a "Today's checkpoint →" button. The splash on old posts says "Checkpoint closed", with "See results" and a link to today. If today's post doesn't exist (for example the cron didn't run), old posts still play today's game so nobody is stranded. New endpoint: `GET /api/day?d=YYYYMMDD`.
+- **Network retry**: every X-ray and stamp carries the on-screen step. After a failed request the red banner's Retry refetches state and resumes at whatever bag the server says is current. A stamp is never applied twice. `busy` (transaction conflict) retries automatically, up to 2 times.
+- **Friendly errors**: radio/X-ray-jam style copy for network, busy, server and bad-request errors. Server-knows-better errors (`stale`, `not-packed`, `shift-finished`, `already-packed`) resync silently.
+- **First-shift hints** (only until your first shift is done): the first item card pulses on the pack desk, the X-ray button pulses on bag 1 with a one-line tip under the suitcase, and each reveal shows a one-line explanation of the payout.
+- Layout fix: the compact directive badge in the booth header no longer overflows at 360px.
+
+**UNCONFIRMED**
+- `context.postData` being available on the client for posts created by the scheduler. If it's missing, the post just behaves as today's checkpoint.
+
+**Test on your phone**
+1. Finish a shift, close the post and reopen it: you land on the report with a ticking countdown.
+2. Tomorrow, open *yesterday's* post: you see "Checkpoint closed" with that day's results and a button to today's post.
+3. Mid-shift, turn on airplane mode and tap PASS: the red banner appears. Turn the network back on and tap Retry: you're on the correct bag, with no double stamp.
+4. New account: the first item pulses, X-ray pulses on bag 1, and the reveals explain the payouts. On a second shift (next day) these hints are gone.

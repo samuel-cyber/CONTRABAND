@@ -108,6 +108,7 @@ export type StateResponse = {
   verdict: Verdict | null;
   shift: ShiftView | null;
   report: ShiftReport | null;
+  todayPostUrl: string | null; // today's checkpoint post, if created
   bustedToday: number; // for the inline preview
   shiftsToday: number;
   leaderboard: LeaderboardEntry[]; // top LEADERBOARD_PREVIEW_SIZE officers
@@ -134,6 +135,17 @@ export type LeaderboardResponse = {
   smuggler: LeaderboardEntry[];
   myOfficer: LeaderboardEntry | null;
   mySmuggler: LeaderboardEntry | null;
+};
+
+/** Read-only results for a past day (shown on old checkpoint posts). */
+export type DayResultsResponse = {
+  type: 'day';
+  dayKey: string;
+  officer: LeaderboardEntry[];
+  smuggler: LeaderboardEntry[];
+  myProfit: number | null;
+  myBag: Verdict | null;
+  todayPostUrl: string | null;
 };
 
 // --- Template counter types: remove with the template demo code. ---

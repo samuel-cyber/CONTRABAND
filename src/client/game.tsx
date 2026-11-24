@@ -7,7 +7,9 @@ import { useGame } from './state/useGame';
 import { Booth } from './screens/Booth';
 import { LoggedOut } from './screens/LoggedOut';
 import { PackDesk } from './screens/PackDesk';
+import { isOldPost, postDayKey } from './postDay';
 import { Leaderboards } from './screens/Leaderboards';
+import { OldPost } from './screens/OldPost';
 import { Report } from './screens/Report';
 import { Verdict } from './screens/Verdict';
 
@@ -52,7 +54,20 @@ export const App = () => {
 
   const firstShift = state.me?.firstShift ?? false;
   let screen: ReactNode;
-  if (phase === 'logged-out' || !state.me) {
+  const oldPostDay = postDayKey();
+  if (
+    oldPostDay &&
+    state.todayPostUrl &&
+    isOldPost(state.dayKey, state.todayPostUrl)
+  ) {
+    screen = (
+      <OldPost
+        dayKey={oldPostDay}
+        me={state.me?.username ?? null}
+        todayPostUrl={state.todayPostUrl}
+      />
+    );
+  } else if (phase === 'logged-out' || !state.me) {
     screen = <LoggedOut state={state} />;
   } else if (phase === 'pack' && state.verdict && !verdictSeen) {
     screen = (
@@ -94,6 +109,8 @@ export const App = () => {
         leaderboard={state.leaderboard}
         me={state.me.username}
         verdict={state.verdict}
+        nextDayAt={state.nextDayAt}
+        onNewDay={() => void game.refresh()}
         onLeaderboards={() => setBoards(true)}
       />
     );
