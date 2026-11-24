@@ -1,4 +1,5 @@
-import type { LeaderboardEntry, ShiftReport } from '../../shared/api';
+import type { LeaderboardEntry, ShiftReport, Verdict } from '../../shared/api';
+import { Leaderboard } from '../components/Leaderboard';
 import { formatMoney, stampEmoji } from '../../shared/share';
 import { BigButton } from '../components/Buttons';
 import { ScreenTitle } from '../components/Header';
@@ -8,36 +9,17 @@ type Props = {
   report: ShiftReport;
   leaderboard: LeaderboardEntry[];
   me: string | null;
+  verdict: Verdict | null;
+  onLeaderboards: () => void;
 };
 
-export const Leaderboard = ({
-  entries,
+export const Report = ({
+  report,
+  leaderboard,
   me,
-  empty,
-}: {
-  entries: LeaderboardEntry[];
-  me: string | null;
-  empty: string;
-}) =>
-  entries.length === 0 ? (
-    <p className="font-mono text-xs text-ink-soft">{empty}</p>
-  ) : (
-    <ol className="flex flex-col gap-0.5 font-mono text-sm">
-      {entries.map((e) => (
-        <li
-          key={`${e.rank}-${e.username}`}
-          className={`flex justify-between gap-2 rounded px-1 ${e.username === me ? 'bg-brass/30 font-bold' : ''}`}
-        >
-          <span className="truncate">
-            {e.rank}. u/{e.username}
-          </span>
-          <span className="shrink-0">{formatMoney(e.score)}</span>
-        </li>
-      ))}
-    </ol>
-  );
-
-export const Report = ({ report, leaderboard, me }: Props) => {
+  verdict,
+  onLeaderboards,
+}: Props) => {
   const cleared = report.outcome === 'SHIFT_CLEARED';
   return (
     <div className="desk flex h-full flex-col gap-3 overflow-y-auto px-4 pt-4 pb-4">
@@ -83,8 +65,21 @@ export const Report = ({ report, leaderboard, me }: Props) => {
           me={me}
           empty="No one else has clocked out yet."
         />
+        <button
+          type="button"
+          onClick={onLeaderboards}
+          className="press mt-2 w-full cursor-pointer rounded-md bg-ink py-2 font-mono text-xs font-bold text-manila"
+        >
+          Full leaderboards →
+        </button>
       </div>
 
+      {verdict && (
+        <p className="text-center font-mono text-xs text-manila/80">
+          Yesterday's bag: passed {verdict.passedBy}, busted {verdict.bustedBy},
+          cut {formatMoney(verdict.cut)}.
+        </p>
+      )}
       <p className="text-center font-mono text-xs text-manila/70">
         Come back tomorrow for your bag's verdict.
       </p>

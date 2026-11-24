@@ -43,3 +43,11 @@ export const SHARE_MAX_CALLOUTS = 2;
 export const DAY_KEY_TTL_SECONDS = 9 * 24 * 60 * 60;
 export const LEADERBOARD_PREVIEW_SIZE = 5;
 export const LEADERBOARD_SIZE = 10;
+
+// Milestone flair (highest earned wins; set best-effort at the end of a shift)
+export const FLAIR_MILESTONES = [
+  { text: 'Master Smuggler', minLifetimeCut: 5000 },
+  { text: '7-Day Shift Streak', minBestStreak: 7 },
+  { text: 'Iron Stamp', minShifts: 10 },
+  { text: '3-Day Shift Streak', minBestStreak: 3 },
+] as const;

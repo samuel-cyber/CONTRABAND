@@ -65,3 +65,24 @@
 2. With a second account (or a friend): pack a bag. Then on your main account play a shift. One of your 5 bags should be the second account's bag (real username, not NPC-tagged).
 3. Log out and open the post: the splash shows "Log in to clock in", and tapping it opens the login prompt.
 4. Next morning (after 00:05 UTC) a new `Checkpoint #2` post should appear on its own.
+
+## Milestone 3: Full rules (2026-11-24)
+
+**Built**
+- **Verdict card**: shown before the pack desk when you packed a bag yesterday. It shows your 3 items, your label, passed/busted counts, Smuggler's Cut, and up to 3 busters. Variants: "You got away with it", "Caught red-handed", "You baited them" (a clean bag that got busted; busters are listed as "Fell for it"), "Clean and waved through", and "Still in the queue" (nobody inspected it yet). Your report also has a one-line summary of yesterday's bag.
+- **Honesty badge**: the 7-day window counts today plus the 6 days before. It shows "New Traveler" under 2 bags, is frozen at pack time, and NPCs show their personality rating.
+- **Directives**: Weight Check (grams on the passport), Tech Crackdown (×2 on tech items in cards, officer payouts and the smuggler cut), Double Scan (2 X-rays). All are driven by `shared/directives.ts`.
+- **Streaks**: consecutive UTC days with a completed shift. A second completion on the same day doesn't count.
+- **Leaderboards**: a new "Full leaderboards" screen from the report with Officer/Smuggler tabs, the top 10, and your own row pinned if you're outside the top 10.
+- **Share**: share sheet, with clipboard + toast as the fallback (since 1C).
+- **Flair**: `shared/flair.ts` picks the highest milestone earned (Master Smuggler ≥ $5,000 lifetime cut, 7-Day Shift Streak, Iron Stamp at 10 shifts, 3-Day Shift Streak). It is set at the end of a shift inside try/catch and only when it changes. The thresholds are in `balance.ts`.
+- Lifetime Smuggler's Cut is now tracked per user (`user:{id}:stats.cut`).
+
+**UNCONFIRMED**
+- Whether `reddit.setUserFlair` is allowed for the app account in your subreddit. If it fails it's logged as `Flair not set for …` and the game carries on.
+
+**Test on your phone**
+1. Day 2: open the post. The verdict card shows first, then CLOCK IN takes you to the pack desk.
+2. On a Double Scan day the booth shows "2 left". On Weight Check, passports show grams. On Tech Crackdown, tech cards show a red ×2 and the values are doubled.
+3. Report → "Full leaderboards" → switch tabs → Back.
+4. After 3 days in a row, check your user flair in the subreddit ("3-Day Shift Streak").

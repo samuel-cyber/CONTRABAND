@@ -1,4 +1,5 @@
 import { context, reddit, redis } from '@devvit/web/server';
+import { flairFor } from '../../shared/flair';
 import type { BagHistory, BagOutcome, Streak } from '../../shared/reputation';
 import { int } from './errors';
 import { keys } from './keys';
@@ -25,7 +26,11 @@ export const resolveSnoovatar = async (
   }
 };
 
-export type PlayerStats = Streak & { shifts: number; flair: string };
+export type PlayerStats = Streak & {
+  shifts: number;
+  flair: string;
+  lifetimeCut: number;
+};
 
 export const readStats = async (userId: string): Promise<PlayerStats> => {
   const raw = await redis.hGetAll(keys.userStats(userId));
@@ -35,6 +40,7 @@ export const readStats = async (userId: string): Promise<PlayerStats> => {
     lastPlayedDay: raw.lastPlayedDay ?? '',
     shifts: int(raw.shifts),
     flair: raw.flair ?? '',
+    lifetimeCut: int(raw.cut),
   };
 };
 
@@ -48,4 +54,27 @@ export const readHistory = async (userId: string): Promise<BagHistory> => {
     if (isOutcome(value)) out[day] = value;
   }
   return out;
+};
+
+/** Best-effort milestone flair. Never throws; never blocks gameplay. */
+export const awardFlair = async (ident: Identity): Promise<void> => {
+  try {
+    const stats = await readStats(ident.userId);
+    const text = flairFor({
+      shifts: stats.shifts,
+      bestStreak: stats.best,
+      lifetimeCut: stats.lifetimeCut,
+    });
+    if (!text || text === stats.flair) return;
+    await reddit.setUserFlair({
+      subredditName: context.subredditName,
+      username: ident.username,
+      text,
+      backgroundColor: '#D93829',
+      textColor: 'light',
+    });
+    await redis.hSet(keys.userStats(ident.userId), { flair: text });
+  } catch (error) {
+    console.warn(`Flair not set for ${ident.username}`, error);
+  }
 };

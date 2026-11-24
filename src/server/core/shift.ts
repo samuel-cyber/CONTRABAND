@@ -291,6 +291,11 @@ export const stampCurrent = async (
     if (busterSlot !== null) {
       await tx.hSet(bagKey, { [`buster${busterSlot}`]: ident.username });
     }
+    await tx.hIncrBy(
+      keys.userStats(packer.userId),
+      'cut',
+      reveal.smugglerDelta
+    );
     await tx.zIncrBy(
       keys.lbSmuggler(packer.day),
       packer.userId,

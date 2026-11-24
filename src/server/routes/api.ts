@@ -11,7 +11,7 @@ import { isStampAction } from '../../shared/scoring';
 import { getToday } from '../core/day';
 import { ApiError } from '../core/errors';
 import { myEntry, topEntries } from '../core/leaderboard';
-import { getIdentity, type Identity } from '../core/player';
+import { awardFlair, getIdentity, type Identity } from '../core/player';
 import { buildReport, packBag, stampCurrent, xrayCurrent } from '../core/shift';
 import { toShiftView } from '../core/shiftMachine';
 import { buildState } from '../core/state';
@@ -112,6 +112,7 @@ api.post('/stamp', async (c) => {
     }
     const today = getToday();
     const out = await stampCurrent(ident, today, action, requireStep(body));
+    if (out.streak) await awardFlair(ident);
     return c.json<StampResponse>({
       type: 'stamp',
       reveal: out.reveal,

@@ -1,13 +1,15 @@
 import './index.css';
 
-import { StrictMode, useEffect, type ReactNode } from 'react';
+import { StrictMode, useEffect, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BigButton } from './components/Buttons';
 import { useGame } from './state/useGame';
 import { Booth } from './screens/Booth';
 import { LoggedOut } from './screens/LoggedOut';
 import { PackDesk } from './screens/PackDesk';
+import { Leaderboards } from './screens/Leaderboards';
 import { Report } from './screens/Report';
+import { Verdict } from './screens/Verdict';
 
 const Centered = ({ children }: { children: ReactNode }) => (
   <div className="desk flex h-full flex-col items-center justify-center gap-4 px-6 text-center">
@@ -17,6 +19,8 @@ const Centered = ({ children }: { children: ReactNode }) => (
 
 export const App = () => {
   const game = useGame();
+  const [verdictSeen, setVerdictSeen] = useState(false);
+  const [boards, setBoards] = useState(false);
   const { state, reveal, error } = game;
   const phase = state?.phase;
   const reportReady = phase === 'report' && reveal === null;
@@ -50,6 +54,13 @@ export const App = () => {
   let screen: ReactNode;
   if (phase === 'logged-out' || !state.me) {
     screen = <LoggedOut state={state} />;
+  } else if (phase === 'pack' && state.verdict && !verdictSeen) {
+    screen = (
+      <Verdict
+        verdict={state.verdict}
+        onContinue={() => setVerdictSeen(true)}
+      />
+    );
   } else if (phase === 'pack') {
     screen = (
       <PackDesk
@@ -72,12 +83,18 @@ export const App = () => {
         onNext={game.next}
       />
     );
+  } else if (state.report && boards) {
+    screen = (
+      <Leaderboards me={state.me.username} onBack={() => setBoards(false)} />
+    );
   } else if (state.report) {
     screen = (
       <Report
         report={state.report}
         leaderboard={state.leaderboard}
         me={state.me.username}
+        verdict={state.verdict}
+        onLeaderboards={() => setBoards(true)}
       />
     );
   } else {
