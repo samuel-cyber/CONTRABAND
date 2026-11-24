@@ -35,6 +35,14 @@ const requireUser = async (): Promise<Identity> => {
   return ident;
 };
 
+const requireStep = (body: Body): number => {
+  const step = body.step;
+  if (typeof step !== 'number' || !Number.isInteger(step)) {
+    throw new ApiError('bad-request', 'Missing bag step.');
+  }
+  return step;
+};
+
 const fail = (c: Context, error: unknown) => {
   if (error instanceof ApiError) {
     return c.json<ErrorResponse>(
@@ -77,8 +85,13 @@ api.post('/pack', async (c) => {
 api.post('/xray', async (c) => {
   try {
     const ident = await requireUser();
+    const body = await readBody(c);
     const today = getToday();
-    const { state, bag, itemId } = await xrayCurrent(ident, today);
+    const { state, bag, itemId } = await xrayCurrent(
+      ident,
+      today,
+      requireStep(body)
+    );
     return c.json<XrayResponse>({
       type: 'xray',
       itemId,
@@ -98,7 +111,7 @@ api.post('/stamp', async (c) => {
       throw new ApiError('bad-request', 'Stamp PASS or BUST.');
     }
     const today = getToday();
-    const out = await stampCurrent(ident, today, action);
+    const out = await stampCurrent(ident, today, action, requireStep(body));
     return c.json<StampResponse>({
       type: 'stamp',
       reveal: out.reveal,

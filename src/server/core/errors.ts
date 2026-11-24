@@ -11,6 +11,7 @@ const STATUS: Record<ApiErrorCode, ErrorStatus> = {
   'no-xrays': 409,
   'nothing-left': 409,
   busy: 409,
+  stale: 409,
   server: 500,
 };
 

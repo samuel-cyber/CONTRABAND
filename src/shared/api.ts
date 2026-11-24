@@ -15,6 +15,7 @@ export type ApiErrorCode =
   | 'no-xrays'
   | 'nothing-left'
   | 'busy' // concurrent update, safe to retry
+  | 'stale' // request was for a bag that's already stamped; refetch state
   | 'server';
 
 export type ErrorResponse = {
@@ -116,7 +117,9 @@ export type PackRequest = { itemIds: string[]; labelId: string };
 
 export type XrayResponse = { type: 'xray'; itemId: string; shift: ShiftView };
 
-export type StampRequest = { action: StampAction };
+export type XrayRequest = { step: number };
+
+export type StampRequest = { action: StampAction; step: number };
 export type StampResponse = {
   type: 'stamp';
   reveal: Reveal;

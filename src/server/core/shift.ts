@@ -177,7 +177,8 @@ export const packBag = async (
 /** Loads the shift and current bag under a watch. Caller must exec or abort. */
 const openShift = async (
   ident: Identity,
-  today: Today
+  today: Today,
+  expectedStep: number
 ): Promise<{ tx: Tx; state: ShiftState; bag: ResolvedBag }> => {
   const tx = await redis.watch(keys.shift(today.day, ident.userId));
   try {
@@ -185,6 +186,11 @@ const openShift = async (
     if (!state) throw new ApiError('not-packed', 'Pack your bag first.');
     const ref = currentRef(state);
     if (!ref) throw new ApiError('shift-finished', 'Your shift is over.');
+    // The client says which bag it is looking at; a retried or doubled
+    // request for a bag that's already stamped is rejected, not re-applied.
+    if (state.step !== expectedStep) {
+      throw new ApiError('stale', 'That bag was already stamped.');
+    }
     const bag = await resolveRef(ref, today);
     if (!bag) throw new ApiError('server', 'That bag went missing.');
     return { tx, state, bag };
@@ -196,9 +202,10 @@ const openShift = async (
 
 export const xrayCurrent = async (
   ident: Identity,
-  today: Today
+  today: Today,
+  expectedStep: number
 ): Promise<{ state: ShiftState; bag: ResolvedBag; itemId: string }> => {
-  const { tx, state, bag } = await openShift(ident, today);
+  const { tx, state, bag } = await openShift(ident, today, expectedStep);
   const result = applyXray(state, bag, Math.random);
   if (!result.ok) {
     await abort(tx);
@@ -222,9 +229,10 @@ export type StampOutcome = {
 export const stampCurrent = async (
   ident: Identity,
   today: Today,
-  action: StampAction
+  action: StampAction,
+  expectedStep: number
 ): Promise<StampOutcome> => {
-  const { tx, state, bag } = await openShift(ident, today);
+  const { tx, state, bag } = await openShift(ident, today, expectedStep);
   const { day } = today;
   let next: BagRef | null = null;
   let busterSlot: number | null = null;

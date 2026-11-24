@@ -1,1 +1,127 @@
 @import 'tailwindcss';
+@import '@fontsource/oswald/latin-500.css';
+@import '@fontsource/oswald/latin-700.css';
+@import '@fontsource/jetbrains-mono/latin-400.css';
+@import '@fontsource/jetbrains-mono/latin-700.css';
+
+@theme {
+  --color-desk: #1e1c1a;
+  --color-desk-2: #2a2724;
+  --color-desk-3: #3a3631;
+  --color-manila: #f2e8d5;
+  --color-manila-2: #e4d6bb;
+  --color-manila-3: #cdbb98;
+  --color-ink: #2b241d;
+  --color-ink-soft: #6b5d4d;
+  --color-crimson: #d93829;
+  --color-crimson-dark: #a8281c;
+  --color-clear: #2d8a56;
+  --color-clear-dark: #1f6640;
+  --color-phosphor: #4af626;
+  --color-leather: #7a4a2a;
+  --color-leather-dark: #5a3520;
+  --color-brass: #c9a24a;
+
+  --font-display: 'Oswald', 'Arial Narrow', 'Roboto Condensed', sans-serif;
+  --font-mono:
+    'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-desk);
+  color: var(--color-manila);
+  font-family: var(--font-display);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+  user-select: none;
+}
+
+/* Desk grain: two soft gradients, no image request. */
+.desk {
+  background-color: var(--color-desk);
+  background-image:
+    radial-gradient(
+      120% 60% at 50% 0%,
+      rgb(255 255 255 / 0.05),
+      transparent 60%
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgb(255 255 255 / 0.015) 0 2px,
+      transparent 2px 7px
+    );
+}
+
+/* Manila paper with faint ruled lines. */
+.paper {
+  background-color: var(--color-manila);
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0 22px,
+    rgb(43 36 29 / 0.06) 22px 23px
+  );
+  color: var(--color-ink);
+}
+
+.stamp-text {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.press {
+  transition:
+    transform 80ms ease-out,
+    box-shadow 80ms ease-out,
+    filter 80ms;
+}
+.press:active:not(:disabled) {
+  transform: translateY(3px) scale(0.98);
+  box-shadow: none !important;
+}
+.press:disabled {
+  filter: grayscale(0.6) brightness(0.8);
+  cursor: not-allowed;
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgb(74 246 38 / 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 14px rgb(74 246 38 / 0);
+  }
+}
+.hint-pulse {
+  animation: pulse-ring 1.2s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+@keyframes xray-sweep {
+  from {
+    left: -10%;
+  }
+  to {
+    left: 105%;
+  }
+}
+.xray-beam {
+  animation: xray-sweep 0.7s linear infinite;
+}

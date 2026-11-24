@@ -1,60 +1,70 @@
 import './index.css';
 
-import { navigateTo } from '@devvit/web/client';
-import { context, requestExpandedMode } from '@devvit/web/client';
-import { StrictMode } from 'react';
+import {
+  context,
+  requestExpandedMode,
+  showLoginPrompt,
+} from '@devvit/web/client';
+import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import type { StateResponse } from '../shared/api';
+import { dayKey, dayKeyToDate } from '../shared/day';
+import { DirectiveBadge } from './components/DirectiveBadge';
+
+const prettyDate = (key: string) =>
+  dayKeyToDate(key).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  });
+
+const isLoggedIn = (): boolean => {
+  try {
+    return Boolean(context.userId);
+  } catch {
+    return true; // let the game screen handle it
+  }
+};
 
 export const Splash = () => {
+  const [state, setState] = useState<StateResponse | null>(null);
+
+  useEffect(() => {
+    fetch('/api/state')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((s: StateResponse | null) => setState(s))
+      .catch(() => setState(null));
+  }, []);
+
+  const day = state?.dayKey ?? dayKey();
+  const loggedIn = isLoggedIn();
+  const done = state?.phase === 'report';
+
   return (
-    <div className="flex relative flex-col justify-center items-center min-h-screen gap-4 bg-white dark:bg-gray-900">
-      <img
-        className="object-contain w-1/2 max-w-[250px] mx-auto"
-        src="/snoo.png"
-        alt="Snoo"
-      />
-      <div className="flex flex-col items-center gap-2">
-        <h1 className="text-2xl font-bold text-center text-gray-900 dark:text-white">
-          Hey {context.username ?? 'user'} 👋
-        </h1>
-        <p className="text-base text-center text-gray-600 dark:text-gray-300">
-          Edit{' '}
-          <span className="bg-[#e5ebee] dark:bg-gray-700 px-1 py-0.5 rounded">
-            src/client/splash.tsx
-          </span>{' '}
-          to get started.
-        </p>
+    <div className="desk flex h-full flex-col items-center justify-center gap-3 overflow-hidden px-5 text-center">
+      <div className="font-mono text-xs tracking-[0.3em] text-brass uppercase">
+        Checkpoint · {prettyDate(day)}
       </div>
-      <div className="flex items-center justify-center mt-5">
-        <button
-          className="flex items-center justify-center bg-[#d93900] dark:bg-orange-600 text-white w-auto h-10 rounded-full cursor-pointer transition-colors px-4 hover:bg-[#c23300] dark:hover:bg-orange-700"
-          onClick={(e) => requestExpandedMode(e.nativeEvent, 'game')}
-        >
-          Tap to Start
-        </button>
+      <div className="stamp-text -rotate-3 rounded-md border-[5px] border-crimson px-4 py-1 text-4xl text-crimson sm:text-5xl">
+        Contrabluff
       </div>
-      <footer className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3 text-[0.8em] text-gray-600 dark:text-gray-400">
-        <button
-          className="cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors"
-          onClick={() => navigateTo('https://developers.reddit.com/docs')}
-        >
-          Docs
-        </button>
-        <span className="text-gray-300 dark:text-gray-600">|</span>
-        <button
-          className="cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors"
-          onClick={() => navigateTo('https://www.reddit.com/r/Devvit')}
-        >
-          r/Devvit
-        </button>
-        <span className="text-gray-300 dark:text-gray-600">|</span>
-        <button
-          className="cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors"
-          onClick={() => navigateTo('https://discord.com/invite/R7yu2wh9Qz')}
-        >
-          Discord
-        </button>
-      </footer>
+      {state && <DirectiveBadge id={state.directiveId} />}
+      <p className="font-mono text-sm text-manila/80">
+        {state
+          ? `${state.bustedToday} smuggler${state.bustedToday === 1 ? '' : 's'} busted today`
+          : 'Pack a bag. Inspect five strangers.'}
+      </p>
+      <button
+        type="button"
+        onClick={(e) =>
+          loggedIn
+            ? requestExpandedMode(e.nativeEvent, 'game')
+            : showLoginPrompt()
+        }
+        className="press stamp-text min-h-16 w-full max-w-[280px] cursor-pointer rounded-xl bg-brass px-6 text-3xl text-desk shadow-[0_6px_0_#8a6d2c]"
+      >
+        {!loggedIn ? 'Log in to clock in' : done ? 'See my shift' : 'Clock in'}
+      </button>
     </div>
   );
 };

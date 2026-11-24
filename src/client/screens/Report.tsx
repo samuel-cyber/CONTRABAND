@@ -1,0 +1,93 @@
+import type { LeaderboardEntry, ShiftReport } from '../../shared/api';
+import { formatMoney, stampEmoji } from '../../shared/share';
+import { BigButton } from '../components/Buttons';
+import { ScreenTitle } from '../components/Header';
+import { shareResult } from '../share';
+
+type Props = {
+  report: ShiftReport;
+  leaderboard: LeaderboardEntry[];
+  me: string | null;
+};
+
+export const Leaderboard = ({
+  entries,
+  me,
+  empty,
+}: {
+  entries: LeaderboardEntry[];
+  me: string | null;
+  empty: string;
+}) =>
+  entries.length === 0 ? (
+    <p className="font-mono text-xs text-ink-soft">{empty}</p>
+  ) : (
+    <ol className="flex flex-col gap-0.5 font-mono text-sm">
+      {entries.map((e) => (
+        <li
+          key={`${e.rank}-${e.username}`}
+          className={`flex justify-between gap-2 rounded px-1 ${e.username === me ? 'bg-brass/30 font-bold' : ''}`}
+        >
+          <span className="truncate">
+            {e.rank}. u/{e.username}
+          </span>
+          <span className="shrink-0">{formatMoney(e.score)}</span>
+        </li>
+      ))}
+    </ol>
+  );
+
+export const Report = ({ report, leaderboard, me }: Props) => {
+  const cleared = report.outcome === 'SHIFT_CLEARED';
+  return (
+    <div className="desk flex h-full flex-col gap-3 overflow-y-auto px-4 pt-4 pb-4">
+      <ScreenTitle kicker="Shift report" title="End of shift" />
+      <div className="paper flex flex-col items-center gap-2 rounded-xl border-2 border-manila-3 p-4 shadow-[0_6px_0_rgb(0_0_0/0.35)]">
+        <div
+          className={`stamp-text -rotate-6 rounded-md border-[5px] px-4 py-1 text-3xl ${cleared ? 'border-clear text-clear' : 'border-crimson text-crimson'}`}
+        >
+          {cleared ? 'Shift cleared' : 'Docked pay'}
+        </div>
+        <div
+          className={`font-mono text-4xl font-bold ${report.profit >= 0 ? 'text-clear-dark' : 'text-crimson'}`}
+        >
+          {formatMoney(report.profit)}
+        </div>
+        <div className="text-2xl tracking-widest" aria-label="Stamp results">
+          {report.reveals.map((r) => stampEmoji(r)).join('')}
+        </div>
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 font-mono text-xs text-ink-soft">
+          {report.rank !== null && <span>#{report.rank} officer today</span>}
+          <span>🔥 {report.streak}-day streak</span>
+        </div>
+        {report.bustedUsernames.length > 0 && (
+          <p className="text-center font-mono text-xs">
+            Busted: {report.bustedUsernames.map((n) => `u/${n}`).join(', ')}
+          </p>
+        )}
+      </div>
+
+      <BigButton onClick={() => void shareResult(report.shareText)}>
+        Share result 📋
+      </BigButton>
+      <p className="-mt-1 text-center font-mono text-[11px] break-words text-manila/60 select-text">
+        {report.shareText}
+      </p>
+
+      <div className="paper rounded-xl p-3">
+        <div className="stamp-text mb-1 text-sm text-ink-soft">
+          Top officers today
+        </div>
+        <Leaderboard
+          entries={leaderboard}
+          me={me}
+          empty="No one else has clocked out yet."
+        />
+      </div>
+
+      <p className="text-center font-mono text-xs text-manila/70">
+        Come back tomorrow for your bag's verdict.
+      </p>
+    </div>
+  );
+};

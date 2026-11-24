@@ -19,3 +19,29 @@
 - A shift started before 00:00 UTC and continued after it starts over on the new day (the shift belongs to the day it was packed). This is deliberate, but untested.
 
 **Test on your phone:** nothing yet (no UI). Covered by 1C.
+
+## Milestone 1C: Playable loop (2026-11-24)
+
+**Built**
+- Theme: palette tokens, Oswald + JetBrains Mono bundled locally (`@fontsource`, woff2 inside the build), manila paper and desk textures, press states, `prefers-reduced-motion` honoured.
+- `splash.tsx` (inline): date, stamped CONTRABLUFF title, directive badge, "N smugglers busted today", CLOCK IN. CLOCK IN opens expanded mode, or the login prompt if logged out.
+- `game.tsx` routes by phase: Logged out → Pack desk → Booth → Report.
+- Pack desk: 5 item cards (value, ×2 on Tech Crackdown, LEGAL/CONTRABAND pill), 3-slot suitcase, label wheel (‹ ›), and SEAL. The SEAL button shows how many items are still needed.
+- Booth: progress dots, profit, passport (Snoovatar or initials, NPC tag and title, honesty pill, weight on Weight Check days, declared label), suitcase with a CRT strip for X-ray finds, X-RAY button, big PASS/BUST. After each stamp a reveal panel shows the verdict stamp, the money change, the bag's contents, and "Next traveller".
+- Report: SHIFT CLEARED / DOCKED PAY stamp, profit, emoji grid, rank, streak, who you busted, Share (share sheet, falling back to clipboard + toast), top officers.
+- Server hardening: X-ray and stamp now send the step of the bag on screen. A retried or double-tapped request for a bag that's already stamped gets `stale` and the client resyncs instead of stamping the next bag.
+- Visual QA: screenshots of each screen at 360×640 in headless Chromium with mocked API data. The pack desk was compressed so SEAL fits without scrolling.
+
+**UNCONFIRMED**
+- `showShareSheet` behaviour on iOS, Android and desktop (the clipboard fallback is there).
+- Snoovatar images loading inside the web view (initials fallback on error).
+- Emoji rendering is down to each phone's emoji font. These are placeholders until the designer's SVGs arrive.
+
+**Test on your phone** (`npm run dev`, open the playtest subreddit, create a post via the mod menu "Create a new post" for now):
+1. The inline splash shows today's directive and CLOCK IN, and it opens the full-screen game.
+2. Pick 3 items, cycle the label, SEAL. You should land on Bag 1/5 with an NPC.
+3. X-ray once: one item appears in green on the suitcase, and the button shows 0 left (2 on Double Scan days).
+4. Stamp all 5 bags: each reveal shows contents and money, and the profit updates.
+5. The report shows the grid. Share opens the share sheet or copies the text.
+6. Close and reopen the post: you go straight back to the report (one shift per day).
+7. Kill the network mid-shift and tap a stamp: a red banner appears. Retry resumes at the same bag.
