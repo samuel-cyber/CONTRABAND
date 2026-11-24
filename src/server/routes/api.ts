@@ -1,93 +1,140 @@
-import { Hono } from 'hono';
-import { context, redis, reddit } from '@devvit/web/server';
+import { Hono, type Context } from 'hono';
 import type {
-  DecrementResponse,
-  IncrementResponse,
-  InitResponse,
+  ErrorResponse,
+  LeaderboardResponse,
+  StampResponse,
+  StateResponse,
+  XrayResponse,
 } from '../../shared/api';
-
-type ErrorResponse = {
-  status: 'error';
-  message: string;
-};
+import { LEADERBOARD_SIZE } from '../../shared/balance';
+import { isStampAction } from '../../shared/scoring';
+import { getToday } from '../core/day';
+import { ApiError } from '../core/errors';
+import { myEntry, topEntries } from '../core/leaderboard';
+import { getIdentity, type Identity } from '../core/player';
+import { buildReport, packBag, stampCurrent, xrayCurrent } from '../core/shift';
+import { toShiftView } from '../core/shiftMachine';
+import { buildState } from '../core/state';
 
 export const api = new Hono();
 
-api.get('/init', async (c) => {
-  const { postId } = context;
+type Body = Record<string, unknown>;
 
-  if (!postId) {
-    console.error('API Init Error: postId not found in devvit context');
+const readBody = async (c: Context): Promise<Body> => {
+  try {
+    const body: unknown = await c.req.json();
+    return typeof body === 'object' && body !== null ? { ...body } : {};
+  } catch {
+    return {};
+  }
+};
+
+const requireUser = async (): Promise<Identity> => {
+  const ident = await getIdentity();
+  if (!ident) throw new ApiError('logged-out', 'Log in to clock in.');
+  return ident;
+};
+
+const fail = (c: Context, error: unknown) => {
+  if (error instanceof ApiError) {
     return c.json<ErrorResponse>(
-      {
-        status: 'error',
-        message: 'postId is required but missing from context',
-      },
-      400
+      { status: 'error', code: error.code, message: error.message },
+      error.status
     );
   }
+  console.error('Unhandled API error', error);
+  return c.json<ErrorResponse>(
+    { status: 'error', code: 'server', message: 'Something went wrong.' },
+    500
+  );
+};
 
+api.get('/state', async (c) => {
   try {
-    const [count, username] = await Promise.all([
-      redis.get('count'),
-      reddit.getCurrentUsername(),
-    ]);
+    const today = getToday();
+    const ident = await getIdentity();
+    return c.json<StateResponse>(await buildState(ident, today));
+  } catch (error) {
+    return fail(c, error);
+  }
+});
 
-    return c.json<InitResponse>({
-      type: 'init',
-      postId: postId,
-      count: count ? parseInt(count) : 0,
-      username: username ?? 'anonymous',
+api.post('/pack', async (c) => {
+  try {
+    const ident = await requireUser();
+    const today = getToday();
+    const body = await readBody(c);
+    await packBag(ident, today, {
+      itemIds: body.itemIds,
+      labelId: body.labelId,
+    });
+    return c.json<StateResponse>(await buildState(ident, today));
+  } catch (error) {
+    return fail(c, error);
+  }
+});
+
+api.post('/xray', async (c) => {
+  try {
+    const ident = await requireUser();
+    const today = getToday();
+    const { state, bag, itemId } = await xrayCurrent(ident, today);
+    return c.json<XrayResponse>({
+      type: 'xray',
+      itemId,
+      shift: toShiftView(state, bag),
     });
   } catch (error) {
-    console.error(`API Init Error for post ${postId}:`, error);
-    let errorMessage = 'Unknown error during initialization';
-    if (error instanceof Error) {
-      errorMessage = `Initialization failed: ${error.message}`;
+    return fail(c, error);
+  }
+});
+
+api.post('/stamp', async (c) => {
+  try {
+    const ident = await requireUser();
+    const body = await readBody(c);
+    const action = body.action;
+    if (!isStampAction(action)) {
+      throw new ApiError('bad-request', 'Stamp PASS or BUST.');
     }
-    return c.json<ErrorResponse>(
-      { status: 'error', message: errorMessage },
-      400
-    );
+    const today = getToday();
+    const out = await stampCurrent(ident, today, action);
+    return c.json<StampResponse>({
+      type: 'stamp',
+      reveal: out.reveal,
+      shift: toShiftView(out.state, out.nextBag),
+      report: out.streak
+        ? await buildReport(ident, today, out.state, out.streak)
+        : null,
+    });
+  } catch (error) {
+    return fail(c, error);
   }
 });
 
-api.post('/increment', async (c) => {
-  const { postId } = context;
-  if (!postId) {
-    return c.json<ErrorResponse>(
-      {
-        status: 'error',
-        message: 'postId is required',
-      },
-      400
-    );
+api.get('/leaderboard', async (c) => {
+  try {
+    const today = getToday();
+    const ident = await getIdentity();
+    const [officer, smuggler, myOfficer, mySmuggler] = await Promise.all([
+      topEntries('officer', today.day, LEADERBOARD_SIZE),
+      topEntries('smuggler', today.day, LEADERBOARD_SIZE),
+      ident
+        ? myEntry('officer', today.day, ident.userId, ident.username)
+        : null,
+      ident
+        ? myEntry('smuggler', today.day, ident.userId, ident.username)
+        : null,
+    ]);
+    return c.json<LeaderboardResponse>({
+      type: 'leaderboard',
+      dayKey: today.day,
+      officer,
+      smuggler,
+      myOfficer,
+      mySmuggler,
+    });
+  } catch (error) {
+    return fail(c, error);
   }
-
-  const count = await redis.incrBy('count', 1);
-  return c.json<IncrementResponse>({
-    count,
-    postId,
-    type: 'increment',
-  });
-});
-
-api.post('/decrement', async (c) => {
-  const { postId } = context;
-  if (!postId) {
-    return c.json<ErrorResponse>(
-      {
-        status: 'error',
-        message: 'postId is required',
-      },
-      400
-    );
-  }
-
-  const count = await redis.incrBy('count', -1);
-  return c.json<DecrementResponse>({
-    count,
-    postId,
-    type: 'decrement',
-  });
 });

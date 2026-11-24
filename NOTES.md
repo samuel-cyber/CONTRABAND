@@ -228,7 +228,7 @@ Treat flair as best-effort: wrap it in try/catch and never block gameplay on it.
 | `npm run build` | `vite build` → `dist/` (passes on the template) |
 | `npm run test:types` | `tsc --build` (passes) |
 | `npm run lint` | eslint (passes) |
-| `npm run test:unit` | `node --test` over `src/**/*.test.ts` |
+| `npm run test:unit` | `vitest run` over `src/**/*.test.ts` |
 | `npm run dev` | `devvit playtest`: installs to the playtest subreddit, hot-reloads, streams logs. Add `?playtest=contrabluff` to the subreddit URL for client logs |
 | `npm run login` | `devvit login` |
 | `npm run deploy` | types + lint + `devvit upload` (private; installable to subreddits with fewer than 200 members) |
@@ -252,7 +252,7 @@ src/shared/                      pure TS, no DOM/Node, unit-tested
   directives.ts                  Weight Check / Tech Crackdown / Double Scan definitions + effect helpers (xraysFor, valueOf, showWeight)
   day.ts                         dayKey(date) in UTC, prevDayKey, formatting (21/11)
   rng.ts                         mulberry32 + string hash seed, pick/shuffle helpers
-  daily.ts                       generateDay(dayKey, subredditId) → {hand[5] (≥2 contraband, ≥2 legal), directiveId}
+  daily.ts                       generateDay(dayKey, subredditId) → {hand[5] (3 legal + 2 contraband), directiveId}
   npc.ts                         npcBag(npc, day) → deterministic 3 items + label from personality
   scoring.ts                     officerDelta(bag, action, directive), smugglerDelta(...), shiftResult(profit)
   reputation.ts                  honestyBadge(history) → "38% Honest" | "New Traveler"
@@ -318,9 +318,10 @@ Template files kept for now: `hooks/useCounter.ts`, `routes/forms.ts` and the ex
 6. Art comes from the designer as SVG files in `src/client/assets/{items,npcs,stamps,ui}/`.
 7. Scoring correction: contraband PASSED → packer gets **25%** of the bag's contraband value (was 100%). Directive values apply to both officer and smuggler.
 
-## 13. Deviations made in milestone 1A (please confirm)
+## 13. Milestone 1A rules (confirmed 2026-11-24)
 
-- **Hand = at least 3 legal + 2 contraband** (`MIN_LEGAL_IN_HAND = 3` in `balance.ts`), not "≥2 legal". With only 2 legal items in a 5-card hand, nobody can pack a clean 3-item bag that day, which breaks bluffing, the +200 bait payout and the honesty badge. Since 3 + 2 = 5, every hand is exactly 3 legal + 2 contraband. Set it back to 2 to restore variable hands; `npcBag` already copes with days that have no clean option.
+- **Hand = always 3 legal + 2 contraband** (`MIN_LEGAL_IN_HAND = 3` in `balance.ts`). With only 2 legal items nobody could pack a clean 3-item bag, which would break bluffing, the +200 bait payout and the honesty badge.
+- **Scheduler:** the `daily-post` entry is added to `devvit.json` in the same change as its handler (milestone 1B).
 - **Share grid:** 🟩 = correct PASS, 🟥 = correct BUST, ⬛ = wrong call. Busted callouts are real usernames only (NPCs are never called out), max 2 plus "+N".
 - **Honesty window:** "last 7 days" = today plus the 6 previous UTC days.
 - **25% cut rounding:** `Math.round` (650 → 163).

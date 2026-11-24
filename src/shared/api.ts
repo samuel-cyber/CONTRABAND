@@ -6,7 +6,22 @@ import type { DirectiveId } from './directives';
 import type { HonestyBadge } from './reputation';
 import type { InspectionResult, ShiftOutcome, StampAction } from './scoring';
 
-export type ErrorResponse = { status: 'error'; message: string };
+export type ApiErrorCode =
+  | 'logged-out'
+  | 'bad-request'
+  | 'already-packed'
+  | 'not-packed'
+  | 'shift-finished'
+  | 'no-xrays'
+  | 'nothing-left'
+  | 'busy' // concurrent update, safe to retry
+  | 'server';
+
+export type ErrorResponse = {
+  status: 'error';
+  code: ApiErrorCode;
+  message: string;
+};
 
 export type Passport =
   | {
@@ -30,10 +45,13 @@ export type Reveal = InspectionResult & {
   index: number;
   action: StampAction;
   itemIds: string[];
+  passport: Passport;
+  labelId: string;
 };
 
 export type ShiftView = {
   step: number; // bags stamped so far, 0..SHIFT_SIZE
+  total: number; // SHIFT_SIZE
   xraysLeft: number;
   profit: number;
   current: BagView | null; // null once the shift is finished
@@ -47,11 +65,15 @@ export type ShiftReport = {
   reveals: Reveal[];
   bustedUsernames: string[];
   streak: number;
+  bestStreak: number;
   shareText: string;
 };
 
 export type Verdict = {
   dayKey: string;
+  clean: boolean;
+  itemIds: string[];
+  labelId: string;
   passedBy: number;
   bustedBy: number;
   cut: number;
@@ -66,24 +88,33 @@ export type LeaderboardEntry = {
 
 export type Phase = 'logged-out' | 'pack' | 'inspect' | 'report';
 
+export type Me = {
+  username: string;
+  snoovatarUrl: string | null;
+  streak: number;
+  firstShift: boolean; // true until the player completes their first shift
+};
+
 export type StateResponse = {
   type: 'state';
   dayKey: string;
+  nextDayAt: number; // epoch ms of the next 00:00 UTC
   directiveId: DirectiveId;
   hand: string[];
   phase: Phase;
-  me: { username: string; snoovatarUrl: string | null } | null;
+  me: Me | null;
+  myBag: { itemIds: string[]; labelId: string } | null;
   verdict: Verdict | null;
   shift: ShiftView | null;
   report: ShiftReport | null;
   bustedToday: number; // for the inline preview
+  shiftsToday: number;
   leaderboard: LeaderboardEntry[]; // top LEADERBOARD_PREVIEW_SIZE officers
 };
 
 export type PackRequest = { itemIds: string[]; labelId: string };
-export type PackResponse = { type: 'pack'; shift: ShiftView };
 
-export type XrayResponse = { type: 'xray'; itemId: string; xraysLeft: number };
+export type XrayResponse = { type: 'xray'; itemId: string; shift: ShiftView };
 
 export type StampRequest = { action: StampAction };
 export type StampResponse = {
@@ -95,10 +126,11 @@ export type StampResponse = {
 
 export type LeaderboardResponse = {
   type: 'leaderboard';
+  dayKey: string;
   officer: LeaderboardEntry[];
   smuggler: LeaderboardEntry[];
-  myOfficerRank: number | null;
-  mySmugglerRank: number | null;
+  myOfficer: LeaderboardEntry | null;
+  mySmuggler: LeaderboardEntry | null;
 };
 
 // --- Template counter types: remove with the template demo code. ---
